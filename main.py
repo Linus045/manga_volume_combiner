@@ -119,11 +119,14 @@ mangaDir = Path('manga')
 tempDir = Path('temp')
 outputZips = Path('output')
 
-mangaName = "Case Closed"
+mangaName = "Case Closed - Fantranslation"
 
 pageNumber = 1
 
 onlyCreateZips = False
+
+extractVolumeMappingFromDirectoryName = True
+
 
 def main():
     mangaDir.mkdir(exist_ok=True)
@@ -134,14 +137,13 @@ def main():
         volumePaths = dict()
         for chapter in sorted(mangaDir.iterdir(), key=lambda m: getChapterNumberFromChapterDirectoryName(m)):
             if chapter.is_dir():
-
                 splits = chapter.name.split(" ",2)
                 chapterNo = splits[1]
                 chapterName = ""
                 if len(splits) > 2:
                     chapterName = splits[2]
 
-                volumeNo = findVolumeDirForChapter(chapterNo)
+                volumeNo = findVolumeDirForChapter(chapter.name, chapterNo)
 
                 if volumeNo not in volumePaths:
                     volumePath = tempDir.joinpath("Volume {}".format(volumeNo))
@@ -164,15 +166,21 @@ def main():
 
 def getChapterNumberFromChapterDirectoryName(chapterDir):
     splits = chapterDir.name.split(' ')
-    return float(splits[1])
+    # Ch.0001 -> 1
+    chapterNo = splits[1].split('.')[1]
+    return float(chapterNo)
 
 
-def findVolumeDirForChapter(chapterNo):
-    # cut off the .5, some chapters are named 19.5 and are a bonus chapter, we wanna include them in the same volume
-    chapterNo = chapterNo.split(".")[0]
-    for volume, chapterIndices in mangaMapping.items():
-        if float(chapterNo) >= float(chapterIndices[0]) and float(chapterNo) <= float(chapterIndices[1]):
-            return volume
+def findVolumeDirForChapter(filename,chapterNo):
+    if extractVolumeMappingFromDirectoryName:
+        # Vol.01 -> 1
+        return filename.split(" ")[0].split(".")[1]
+    else:
+        # cut off the .5, some chapters are named 19.5 and are a bonus chapter, we wanna include them in the same volume
+        chapterNo = chapterNo.split(".")[0]
+        for volume, chapterIndices in mangaMapping.items():
+            if float(chapterNo) >= float(chapterIndices[0]) and float(chapterNo) <= float(chapterIndices[1]):
+                return volume
     raise Exception("Volume for chapter {} not found".format(chapterNo))
 
 
